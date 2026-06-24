@@ -1,0 +1,230 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { articlesByDate, makeTitleMap, papersByYear, skillsByUpdated } from "@/lib/content";
+
+const [papers, articles, skills, mcpTools] = await Promise.all([
+  getCollection("papers"),
+  getCollection("articles"),
+  getCollection("skills"),
+  getCollection("mcp")
+]);
+
+const sortedPapers = papersByYear(papers);
+const sortedArticles = articlesByDate(articles);
+const sortedSkills = skillsByUpdated(skills);
+const featuredArticle = sortedArticles[0];
+const featuredPaper = sortedPapers.find((paper) => paper.data.featured) ?? sortedPapers[0];
+const featuredSkill = sortedSkills[0];
+const featuredMcp = mcpTools.find((tool) => tool.id === "github") ?? mcpTools[0];
+const mcpLabels = makeTitleMap(mcpTools);
+const trailEntries = [
+  ...(featuredArticle
+    ? [
+        {
+          label: "Article",
+          title: featuredArticle.data.title,
+          meta: featuredArticle.data.trail,
+          href: `/articles/${featuredArticle.id}/`
+        }
+      ]
+    : []),
+  ...(featuredPaper
+    ? [
+        {
+          label: "Paper note",
+          title: featuredPaper.data.title,
+          meta: `${featuredPaper.data.venue} ${featuredPaper.data.year}`,
+          href: `/papers/${featuredPaper.id}/`
+        }
+      ]
+    : []),
+  ...(featuredSkill
+    ? [
+        {
+          label: "Skill",
+          title: featuredSkill.data.title,
+          meta: featuredSkill.data.focus.join(" / "),
+          href: `/skills/${featuredSkill.id}/`
+        }
+      ]
+    : []),
+  ...(featuredMcp
+    ? [
+        {
+          label: "MCP note",
+          title: featuredMcp.data.title,
+          meta: featuredMcp.data.category,
+          href: `/mcp/${featuredMcp.id}/`
+        }
+      ]
+    : [])
+];
+const contentStats = [
+  { label: "Articles", value: articles.length, href: "/articles/" },
+  { label: "Paper notes", value: papers.length, href: "/papers/" },
+  { label: "Skills", value: skills.length, href: "/skills/" },
+  { label: "MCP notes", value: mcpTools.length, href: "/mcp/" }
+];
+---
+
+<BaseLayout
+  title="Soren AI Pages | AI builder notes"
+  description="Articles, paper notes, reusable skills, and MCP interface notes for AI builders."
+>
+  <main id="top" data-home-system>
+    <section class="hero public-hero">
+      <div class="hero-copy">
+        <h1>
+          <span>Soren AI</span>
+          <span>Pages</span>
+        </h1>
+        <p>Articles, paper notes, reusable skills, and MCP interface notes for AI builders who like their ideas connected to implementation.</p>
+        <div class="hero-actions" aria-label="Primary reading paths">
+          <a class="button button-primary" href="/articles/">Read articles <span aria-hidden="true">-&gt;</span></a>
+          <a class="button button-secondary" href="/skills/">Explore skills <span aria-hidden="true">-&gt;</span></a>
+          <a class="button button-secondary" href="/mcp/">Browse MCP notes <span aria-hidden="true">-&gt;</span></a>
+        </div>
+      </div>
+
+      <aside class="research-panel public-panel" aria-label="Featured paths">
+        <div class="panel-topline">
+          <span>Public notebook</span>
+          <strong>Writing, methods, and interface notes</strong>
+          <a class="panel-view" href="/articles/">Start</a>
+        </div>
+        <div class="public-panel-grid">
+          <section>
+            <p class="section-label">Featured path</p>
+            <ol class="public-trail-list">
+              {
+                trailEntries.map((entry, index) => (
+                  <li>
+                    <span class="trail-number">{index + 1}</span>
+                    <a href={entry.href} data-home-link={String(index)}>
+                      <small>{entry.label}</small>
+                      <strong>{entry.title}</strong>
+                      <span>{entry.meta}</span>
+                    </a>
+                    <span class="external-mark" aria-hidden="true"></span>
+                  </li>
+                ))
+              }
+            </ol>
+          </section>
+
+          <section>
+            <p class="section-label">Library map</p>
+            <ul class="compact-list public-stats">
+              {
+                contentStats.map((stat, index) => (
+                  <li data-home-related={String(index)}>
+                    <a href={stat.href}>
+                      <span>{stat.label}</span>
+                      <strong>{stat.value}</strong>
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </section>
+        </div>
+      </aside>
+    </section>
+
+    <section class="home-index" id="research-index">
+      <div class="section-heading">
+        <div>
+          <h2>Latest writing</h2>
+          <p>Short essays and implementation notes, connected to the papers, skills, and tools behind them.</p>
+        </div>
+        <a class="text-link" href="/articles/">View all articles -&gt;</a>
+      </div>
+      <div class="archive-table compact">
+        <div class="archive-row archive-head article-columns">
+          <span>Title</span>
+          <span>Date</span>
+          <span>Tags</span>
+          <span>Trail</span>
+        </div>
+        {
+          sortedArticles.map((article) => (
+            <a class="archive-row article-columns" href={`/articles/${article.id}/`}>
+              <span>
+                <strong>{article.data.title}</strong>
+                <small>{article.data.summary}</small>
+              </span>
+              <span>{article.data.date.toISOString().slice(0, 10)}</span>
+              <span>{article.data.tags.join(", ")}</span>
+              <span>{article.data.trail}</span>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="overview-grid">
+      <article>
+        <p class="section-label">Paper notes</p>
+        <h2>Research worth keeping close</h2>
+        <ul class="index-list">
+          {
+            sortedPapers.slice(0, 4).map((paper) => (
+              <li>
+                <a href={`/papers/${paper.id}/`}>
+                  <strong>{paper.data.title}</strong>
+                  <span>{paper.data.venue} {paper.data.year}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </article>
+
+      <article>
+        <p class="section-label">Skills</p>
+        <h2>Reusable methods</h2>
+        <ul class="index-list">
+          {
+            sortedSkills.slice(0, 4).map((skill) => (
+              <li>
+                <a href={`/skills/${skill.id}/`}>
+                  <strong>{skill.data.title}</strong>
+                  <span>{skill.data.focus.join(" / ")}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </article>
+
+      <article>
+        <p class="section-label">MCP notes</p>
+        <h2>Tool interfaces in practice</h2>
+        <ul class="index-list">
+          {
+            mcpTools.slice(0, 4).map((tool) => (
+              <li>
+                <a href={`/mcp/${tool.id}/`}>
+                  <strong>{mcpLabels[tool.id]}</strong>
+                  <span>{tool.data.category}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </article>
+    </section>
+
+    <section class="about-band" id="about">
+      <div>
+        <p class="section-label">About</p>
+        <h2>A public notebook for AI builders</h2>
+      </div>
+      <p>
+        Soren AI Pages is a compact place to share articles, paper notes, practical skills, and MCP interface notes. The emphasis is on ideas that can move from reading into building: what a paper changes, which method it supports, and where a tool interface fits.
+      </p>
+      <a class="text-link" href="/articles/">Start with the articles -&gt;</a>
+    </section>
+  </main>
+</BaseLayout>

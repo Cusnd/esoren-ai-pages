@@ -1,0 +1,62 @@
+---
+import SiteFooter from "@/components/SiteFooter.astro";
+import "@/styles/global.css";
+
+type Props = {
+  title?: string;
+  description?: string;
+  hideChrome?: boolean;
+};
+
+const {
+  title = "Soren AI Pages",
+  description = "A personal research notes library for AI papers, articles, skills, and MCP tool interfaces.",
+  hideChrome = false
+} = Astro.props;
+
+const pathname = Astro.url.pathname;
+const isHome = pathname === "/";
+const navItems = [
+  { href: "/articles/", label: "Articles" },
+  { href: "/papers/", label: "Papers" },
+  { href: "/skills/", label: "Skills" },
+  { href: "/mcp/", label: "MCP" },
+  { href: "/#about", label: "About" }
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    {
+      !hideChrome && (
+        <header class:list={["site-header", { "home-header": isHome }]}>
+          <a class="brand" href="/" aria-label="Soren AI Pages home">
+            <span class="brand-grid" aria-hidden="true"></span>
+            <span>Soren AI Pages</span>
+          </a>
+          <nav class="nav-links" aria-label="Primary navigation">
+            {
+              navItems.map((item) => (
+                <a class:list={{ active: item.href !== "/#about" && pathname.startsWith(item.href) }} href={item.href}>
+                  {item.label}
+                </a>
+              ))
+            }
+          </nav>
+          <a class="index-link" href="/#research-index">Start reading</a>
+        </header>
+      )
+    }
+    <slot />
+    {!hideChrome && <SiteFooter />}
+    <script>
+      import "@/scripts/workbench";
+    </script>
+  </body>
+</html>

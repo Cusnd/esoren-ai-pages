@@ -1,0 +1,73 @@
+---
+import { getCollection, render } from "astro:content";
+import EntryLayout from "@/layouts/EntryLayout.astro";
+import { collectionPaths, makeTitleMap } from "@/lib/content";
+
+export async function getStaticPaths() {
+  const tools = await getCollection("mcp");
+  return tools.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry }
+  }));
+}
+
+const { entry } = Astro.props;
+const [papers, articles, skills] = await Promise.all([
+  getCollection("papers"),
+  getCollection("articles"),
+  getCollection("skills")
+]);
+const paperLabels = makeTitleMap(papers);
+const articleLabels = makeTitleMap(articles);
+const skillLabels = makeTitleMap(skills);
+const { Content } = await render(entry);
+const publicStatus: Record<string, string> = {
+  Active: "Documented",
+  Planned: "Planned",
+  Research: "Notes"
+};
+---
+
+<EntryLayout
+  pageTitle={entry.data.title}
+  kind="MCP Interface Note"
+  summary={entry.data.summary}
+  backHref="/mcp/"
+  backLabel="All MCP notes"
+  links={entry.data.links}
+  meta={[
+    { label: "Category", value: entry.data.category },
+    { label: "Status", value: publicStatus[entry.data.status] ?? entry.data.status },
+    { label: "Use cases", value: entry.data.useCases }
+  ]}
+  relations={[
+    {
+      title: "Related Skills",
+      items: entry.data.relatedSkills,
+      labels: skillLabels,
+      basePath: collectionPaths.skills
+    },
+    {
+      title: "Related Papers",
+      items: entry.data.relatedPapers,
+      labels: paperLabels,
+      basePath: collectionPaths.papers
+    },
+    {
+      title: "Related Articles",
+      items: entry.data.relatedArticles,
+      labels: articleLabels,
+      basePath: collectionPaths.articles
+    }
+  ]}
+>
+  <Content />
+  {
+    entry.data.invocation && (
+      <>
+        <h2>Example Invocation</h2>
+        <pre><code>{entry.data.invocation}</code></pre>
+      </>
+    )
+  }
+</EntryLayout>

@@ -1,0 +1,134 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { articlesByDate, formatDate, makeTitleMap } from "@/lib/content";
+
+const [articles, papers, skills, mcpTools] = await Promise.all([
+  getCollection("articles"),
+  getCollection("papers"),
+  getCollection("skills"),
+  getCollection("mcp")
+]);
+
+const sortedArticles = articlesByDate(articles);
+const paperLabels = makeTitleMap(papers);
+const skillLabels = makeTitleMap(skills);
+const mcpLabels = makeTitleMap(mcpTools);
+const statusFilters = ["Published", "Updated", "Draft"];
+const trailCounts = sortedArticles.reduce<Record<string, number>>(
+  (counts, article) => ({ ...counts, [article.data.trail]: (counts[article.data.trail] ?? 0) + 1 }),
+  {}
+);
+---
+
+<BaseLayout title="Articles | Soren AI Pages" description="Essays and implementation notes for AI builders.">
+  <main class="public-index-page" data-workbench="articles">
+    <section class="public-index-hero">
+      <div>
+        <p class="section-label">Articles</p>
+        <h1>Essays for building with research</h1>
+        <p>Short-form writing about AI systems, evaluation loops, research workflows, and tool interfaces.</p>
+      </div>
+      <label class="app-search public-search">
+        <span aria-hidden="true">⌕</span>
+        <input data-search="input" type="search" value="" placeholder="Search articles..." aria-label="Search articles" />
+        <kbd>Ctrl K</kbd>
+      </label>
+    </section>
+
+    <section class="public-index-grid">
+      <aside class="public-filter-rail" aria-label="Article filters">
+        <section>
+          <p class="rail-title">Collection</p>
+          <a class="filter-row active" href="/articles/" data-filter="type" data-filter-value="all">
+            <span>All articles</span>
+            <strong>{articles.length}</strong>
+          </a>
+          <a class="filter-row" href="/papers/">
+            <span>Paper notes</span>
+            <strong>{papers.length}</strong>
+          </a>
+          <a class="filter-row" href="/skills/">
+            <span>Skills</span>
+            <strong>{skills.length}</strong>
+          </a>
+          <a class="filter-row" href="/mcp/">
+            <span>MCP notes</span>
+            <strong>{mcpTools.length}</strong>
+          </a>
+        </section>
+
+        <section>
+          <p class="rail-title">Status</p>
+          <a class="filter-row active" href="/articles/" data-filter="status" data-filter-value="all">
+            <span>All status</span>
+            <strong>{articles.length}</strong>
+          </a>
+          {
+            statusFilters.map((status) => (
+              <a class="filter-row" href="/articles/" data-filter="status" data-filter-value={status}>
+                <span>{status}</span>
+                <strong>{sortedArticles.filter((article) => article.data.status === status).length}</strong>
+              </a>
+            ))
+          }
+        </section>
+
+        <section>
+          <p class="rail-title">Trails</p>
+          {
+            Object.entries(trailCounts).map(([trail, count]) => (
+              <span class="filter-row">
+                <span>{trail}</span>
+                <strong>{count}</strong>
+              </span>
+            ))
+          }
+        </section>
+      </aside>
+
+      <section class="public-results">
+        <header class="public-results-head">
+          <div>
+            <h2>Latest articles</h2>
+            <p><span data-result-count>{sortedArticles.length}</span> articles visible</p>
+          </div>
+          <a class="text-link" href="/papers/">Browse paper notes -&gt;</a>
+        </header>
+
+        <div class="public-card-list">
+          {
+            sortedArticles.map((article) => (
+              <a
+                class="public-note-card"
+                href={`/articles/${article.id}/`}
+                data-item-id={article.id}
+                data-type="Article"
+                data-status={article.data.status}
+                data-search-text={`${article.data.title} ${article.data.summary} ${article.data.status} ${article.data.tags.join(" ")} ${article.data.trail}`}
+              >
+                <span class={`status-text status-${article.data.status.toLowerCase()}`}>{article.data.status}</span>
+                <h3>{article.data.title}</h3>
+                <p>{article.data.summary}</p>
+                <div class="public-card-meta">
+                  <span>{formatDate(article.data.date)}</span>
+                  <span>{article.data.trail}</span>
+                </div>
+                <ul class="inline-tags">
+                  {article.data.tags.map((tag) => <li>{tag}</li>)}
+                </ul>
+                <div class="public-related-line">
+                  <span>{article.data.relatedPapers.map((id) => paperLabels[id]).filter(Boolean).slice(0, 1).join(", ")}</span>
+                  <span>{article.data.relatedSkills.map((id) => skillLabels[id]).filter(Boolean).slice(0, 1).join(", ")}</span>
+                  <span>{article.data.relatedMcp.map((id) => mcpLabels[id]).filter(Boolean).slice(0, 1).join(", ")}</span>
+                </div>
+              </a>
+            ))
+          }
+        </div>
+
+        <p class="workbench-empty" data-empty-state hidden>No matching articles.</p>
+      </section>
+    </section>
+  </main>
+</BaseLayout>

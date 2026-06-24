@@ -1,0 +1,23 @@
+---
+type MetaItem = {
+  label: string;
+  value: string | number | string[];
+};
+
+type Props = {
+  items: MetaItem[];
+};
+
+const { items } = Astro.props;
+---
+
+<dl class="meta-list">
+  {
+    items.map((item) => (
+      <>
+        <dt>{item.label}</dt>
+        <dd>{Array.isArray(item.value) ? item.value.join(" / ") : item.value}</dd>
+      </>
+    ))
+  }
+</dl>

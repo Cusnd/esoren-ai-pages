@@ -1,0 +1,26 @@
+---
+import { labelFor } from "@/lib/content";
+
+type Props = {
+  items?: string[];
+  labels: Record<string, string>;
+  basePath: string;
+  emptyText?: string;
+};
+
+const { items = [], labels, basePath, emptyText = "None recorded" } = Astro.props;
+---
+
+{
+  items.length > 0 ? (
+    <ul class="linked-items">
+      {items.map((item) => (
+        <li>
+          <a href={`${basePath}/${item}/`}>{labelFor(labels, item)}</a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="muted-line">{emptyText}</p>
+  )
+}

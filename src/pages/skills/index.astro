@@ -1,0 +1,136 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { formatDate, makeTitleMap, skillsByUpdated } from "@/lib/content";
+
+const [skills, papers, articles, mcpTools] = await Promise.all([
+  getCollection("skills"),
+  getCollection("papers"),
+  getCollection("articles"),
+  getCollection("mcp")
+]);
+
+const orderedSkills = skillsByUpdated(skills);
+const paperLabels = makeTitleMap(papers);
+const articleLabels = makeTitleMap(articles);
+const mcpLabels = makeTitleMap(mcpTools);
+const publicStatus: Record<string, string> = {
+  Live: "Available",
+  Draft: "In progress",
+  Research: "Notes"
+};
+const statusFilters = ["Available", "In progress", "Notes"];
+const focusCounts = orderedSkills.reduce<Record<string, number>>((counts, skill) => {
+  skill.data.focus.forEach((focus) => {
+    counts[focus] = (counts[focus] ?? 0) + 1;
+  });
+  return counts;
+}, {});
+---
+
+<BaseLayout title="Skills | Soren AI Pages" description="Reusable methods for AI builders.">
+  <main class="public-index-page" data-workbench="skills">
+    <section class="public-index-hero">
+      <div>
+        <p class="section-label">Skills</p>
+        <h1>Reusable methods for AI builders</h1>
+        <p>Practical methods that connect reading, writing, evaluation, tools, and deployment into repeatable workflows.</p>
+      </div>
+      <label class="app-search public-search">
+        <span aria-hidden="true">⌕</span>
+        <input data-search="input" type="search" value="" placeholder="Search skills..." aria-label="Search skills" />
+        <kbd>Ctrl K</kbd>
+      </label>
+    </section>
+
+    <section class="public-index-grid">
+      <aside class="public-filter-rail" aria-label="Skill filters">
+        <section>
+          <p class="rail-title">Collection</p>
+          <a class="filter-row active" href="/skills/" data-filter="status" data-filter-value="all">
+            <span>All skills</span>
+            <strong>{skills.length}</strong>
+          </a>
+          {
+            statusFilters.map((status) => (
+              <a class="filter-row" href="/skills/" data-filter="status" data-filter-value={status}>
+                <span>{status}</span>
+                <strong>{orderedSkills.filter((skill) => publicStatus[skill.data.status] === status).length}</strong>
+              </a>
+            ))
+          }
+        </section>
+
+        <section>
+          <p class="rail-title">Focus</p>
+          {
+            Object.entries(focusCounts).map(([focus, count]) => (
+              <span class="filter-row">
+                <span>{focus}</span>
+                <strong>{count}</strong>
+              </span>
+            ))
+          }
+        </section>
+
+        <section class="public-rail-note">
+          <p class="rail-title">How to use this page</p>
+          <p>Start from a method, then follow the related papers, articles, and MCP notes behind it.</p>
+        </section>
+      </aside>
+
+      <section class="public-results">
+        <header class="public-results-head">
+          <div>
+            <h2>Method library</h2>
+            <p><span data-result-count>{orderedSkills.length}</span> skills visible</p>
+          </div>
+          <a class="text-link" href="/articles/">Read related articles -&gt;</a>
+        </header>
+
+        <div class="public-card-list skill-card-list">
+          {
+            orderedSkills.map((skill) => {
+              const status = publicStatus[skill.data.status] ?? skill.data.status;
+              return (
+                <a
+                  class="public-note-card public-skill-card"
+                  href={`/skills/${skill.id}/`}
+                  data-item-id={skill.id}
+                  data-type="Skill"
+                  data-status={status}
+                  data-search-text={`${skill.data.title} ${skill.data.summary} ${skill.data.status} ${status} ${skill.data.focus.join(" ")} ${skill.data.tags.join(" ")}`}
+                >
+                  <span class={`status-text skill-status status-${skill.data.status.toLowerCase()}`}>{status}</span>
+                  <h3>{skill.data.title}</h3>
+                  <p>{skill.data.summary}</p>
+                  <div class="public-card-meta">
+                    <span>{skill.data.focus.join(" · ")}</span>
+                    <span>Updated {formatDate(skill.data.updated)}</span>
+                  </div>
+                  <ul class="inline-tags">
+                    {skill.data.tags.map((tag) => <li>{tag}</li>)}
+                  </ul>
+                  <div class="public-related-line">
+                    <span>{skill.data.relatedPapers.map((id) => paperLabels[id]).filter(Boolean).slice(0, 1).join(", ")}</span>
+                    <span>{skill.data.relatedArticles.map((id) => articleLabels[id]).filter(Boolean).slice(0, 1).join(", ")}</span>
+                    <span>{skill.data.relatedMcp.map((id) => mcpLabels[id]).filter(Boolean).slice(0, 1).join(", ")}</span>
+                  </div>
+                  {
+                    skill.data.outputs.length > 0 && (
+                      <span class="public-card-cta">
+                        {skill.data.outputs[0].label} ({skill.data.outputs[0].kind})
+                      </span>
+                    )
+                  }
+                </a>
+              );
+            })
+          }
+        </div>
+
+        <p class="workbench-empty" data-empty-state hidden>No matching skills.</p>
+      </section>
+    </section>
+  </main>
+</BaseLayout>

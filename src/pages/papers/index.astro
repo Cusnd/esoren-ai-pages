@@ -1,0 +1,135 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { articlesByDate, makeTitleMap, papersByYear, statusClass } from "@/lib/content";
+
+const [papers, articles, skills, mcpTools] = await Promise.all([
+  getCollection("papers"),
+  getCollection("articles"),
+  getCollection("skills"),
+  getCollection("mcp")
+]);
+
+const sortedPapers = papersByYear(papers);
+const sortedArticles = articlesByDate(articles);
+const skillLabels = makeTitleMap(skills);
+const mcpLabels = makeTitleMap(mcpTools);
+const statuses = ["Notes", "Reading", "Implemented", "To Read", "Archived"];
+const trailCounts = sortedPapers.reduce<Record<string, number>>(
+  (counts, paper) => ({ ...counts, [paper.data.trail]: (counts[paper.data.trail] ?? 0) + 1 }),
+  {}
+);
+---
+
+<BaseLayout title="Paper Notes | Soren AI Pages" description="AI paper notes connected to articles, skills, and MCP interface notes.">
+  <main class="public-index-page" data-workbench="papers">
+    <section class="public-index-hero">
+      <div>
+        <p class="section-label">Paper notes</p>
+        <h1>Research notes with builder context</h1>
+        <p>Readable notes on papers that shape the articles, methods, and interface patterns shared across this site.</p>
+      </div>
+      <label class="app-search public-search">
+        <span aria-hidden="true">⌕</span>
+        <input data-search="input" type="search" value="" placeholder="Search paper notes..." aria-label="Search paper notes" />
+        <kbd>Ctrl K</kbd>
+      </label>
+    </section>
+
+    <section class="public-index-grid">
+      <aside class="public-filter-rail" aria-label="Paper note filters">
+        <section>
+          <p class="rail-title">Collection</p>
+          <a class="filter-row active" href="/papers/" data-filter="type" data-filter-value="all">
+            <span>All paper notes</span>
+            <strong>{papers.length}</strong>
+          </a>
+          <a class="filter-row" href="/articles/">
+            <span>Articles</span>
+            <strong>{articles.length}</strong>
+          </a>
+          <a class="filter-row" href="/skills/">
+            <span>Skills</span>
+            <strong>{skills.length}</strong>
+          </a>
+          <a class="filter-row" href="/mcp/">
+            <span>MCP notes</span>
+            <strong>{mcpTools.length}</strong>
+          </a>
+        </section>
+
+        <section>
+          <p class="rail-title">Reading status</p>
+          <a class="filter-row active" href="/papers/" data-filter="status" data-filter-value="all">
+            <span>All notes</span>
+            <strong>{papers.length}</strong>
+          </a>
+          {
+            statuses.map((status) => (
+              <a class="filter-row" href="/papers/" data-filter="status" data-filter-value={status}>
+                <span>{status}</span>
+                <strong>{sortedPapers.filter((paper) => paper.data.status === status).length}</strong>
+              </a>
+            ))
+          }
+        </section>
+
+        <section>
+          <p class="rail-title">Reading trails</p>
+          {
+            Object.entries(trailCounts).map(([trail, count]) => (
+              <span class="filter-row">
+                <span>{trail}</span>
+                <strong>{count}</strong>
+              </span>
+            ))
+          }
+        </section>
+      </aside>
+
+      <section class="public-results">
+        <header class="public-results-head">
+          <div>
+            <h2>Paper note index</h2>
+            <p><span data-result-count>{sortedPapers.length}</span> paper notes visible</p>
+          </div>
+          <a class="text-link" href="/articles/">Read articles -&gt;</a>
+        </header>
+
+        <div class="public-card-list">
+          {
+            sortedPapers.map((paper) => (
+              <a
+                class="public-note-card"
+                href={`/papers/${paper.id}/`}
+                data-item-id={paper.id}
+                data-type="Paper"
+                data-status={paper.data.status}
+                data-search-text={`${paper.data.title} ${paper.data.summary} ${paper.data.authors.join(" ")} ${paper.data.venue} ${paper.data.year} ${paper.data.status} ${paper.data.tags.join(" ")} ${paper.data.trail}`}
+              >
+                <span class={`status-text status-${statusClass(paper.data.status)}`}>{paper.data.status}</span>
+                <h3>{paper.data.title}</h3>
+                <p>{paper.data.summary}</p>
+                <div class="public-card-meta">
+                  <span>{paper.data.authors.join(", ")}</span>
+                  <span>{paper.data.venue} {paper.data.year}</span>
+                  <span>{paper.data.trail}</span>
+                </div>
+                <ul class="inline-tags">
+                  {paper.data.tags.map((tag) => <li>{tag}</li>)}
+                </ul>
+                <div class="public-related-line">
+                  <span>{paper.data.relatedSkills.map((id) => skillLabels[id]).filter(Boolean).slice(0, 2).join(", ")}</span>
+                  <span>{paper.data.relatedMcp.map((id) => mcpLabels[id]).filter(Boolean).slice(0, 2).join(", ")}</span>
+                  <span>{sortedArticles.find((article) => article.data.relatedPapers.includes(paper.id))?.data.title ?? paper.data.citations[0]?.label}</span>
+                </div>
+              </a>
+            ))
+          }
+        </div>
+
+        <p class="workbench-empty" data-empty-state hidden>No matching paper notes.</p>
+      </section>
+    </section>
+  </main>
+</BaseLayout>

@@ -1,0 +1,105 @@
+---
+import LinkedItems from "@/components/LinkedItems.astro";
+import MetaList from "@/components/MetaList.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+type RelationGroup = {
+  title: string;
+  items: string[];
+  labels: Record<string, string>;
+  basePath: string;
+};
+
+type LinkItem = {
+  label: string;
+  url: string;
+};
+
+type Props = {
+  pageTitle: string;
+  kind: string;
+  summary: string;
+  backHref: string;
+  backLabel: string;
+  meta: { label: string; value: string | number | string[] }[];
+  tags?: string[];
+  relations?: RelationGroup[];
+  links?: LinkItem[];
+};
+
+const {
+  pageTitle,
+  kind,
+  summary,
+  backHref,
+  backLabel,
+  meta,
+  tags = [],
+  relations = [],
+  links = []
+} = Astro.props;
+---
+
+<BaseLayout title={`${pageTitle} | Soren AI Pages`} description={summary}>
+  <main class="entry-page">
+    <a class="back-link" href={backHref}>&lt;- {backLabel}</a>
+
+    <header class="entry-header">
+      <div>
+        <p class="section-label">{kind}</p>
+        <h1>{pageTitle}</h1>
+      </div>
+      <p>{summary}</p>
+    </header>
+
+    <div class="entry-grid">
+      <article class="prose">
+        <slot />
+      </article>
+
+      <aside class="entry-aside" aria-label={`${pageTitle} metadata`}>
+        <section>
+          <h2>Metadata</h2>
+          <MetaList items={meta} />
+        </section>
+
+        {
+          tags.length > 0 && (
+            <section>
+              <h2>Tags</h2>
+              <ul class="inline-tags">
+                {tags.map((tag) => (
+                  <li>{tag}</li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        {
+          links.length > 0 && (
+            <section>
+              <h2>Links</h2>
+              <ul class="linked-items">
+                {links.map((link) => (
+                  <li>
+                    <a href={link.url}>{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        {
+          relations.map((group) => (
+            <section>
+              <h2>{group.title}</h2>
+              <LinkedItems items={group.items} labels={group.labels} basePath={group.basePath} />
+            </section>
+          ))
+        }
+      </aside>
+    </div>
+  </main>
+</BaseLayout>

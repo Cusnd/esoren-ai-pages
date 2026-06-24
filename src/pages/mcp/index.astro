@@ -1,0 +1,122 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const mcpTools = await getCollection("mcp");
+
+const toolOrder = ["github", "google-drive", "slack", "arxiv-search", "pdf-extract", "semantic-scholar", "filesystem", "cloudflare"];
+const sortedTools = [...mcpTools].sort((a, b) => {
+  const aIndex = toolOrder.indexOf(a.id);
+  const bIndex = toolOrder.indexOf(b.id);
+  return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex) || a.data.title.localeCompare(b.data.title);
+});
+const categoryCounts = sortedTools.reduce<Record<string, number>>(
+  (counts, tool) => ({ ...counts, [tool.data.category]: (counts[tool.data.category] ?? 0) + 1 }),
+  {}
+);
+const publicStatus: Record<string, string> = {
+  Active: "Documented",
+  Planned: "Planned",
+  Research: "Notes"
+};
+const toolMarks: Record<string, string> = {
+  github: "GH",
+  "google-drive": "G",
+  slack: "S",
+  "arxiv-search": "arXiv",
+  "pdf-extract": "PDF",
+  "semantic-scholar": "SS",
+  filesystem: "",
+  cloudflare: "CF"
+};
+---
+
+<BaseLayout
+  title="MCP Interface Notes | Soren AI Pages"
+  description="Public notes on MCP tool interfaces, use cases, and example invocations."
+>
+  <main class="public-index-page" data-workbench="mcp">
+    <section class="public-index-hero">
+      <div>
+        <p class="section-label">MCP notes</p>
+        <h1>MCP interfaces, explained for builders</h1>
+        <p>Notes on how tool interfaces expose research materials, team memory, code context, and operational workflows to AI systems.</p>
+      </div>
+      <label class="app-search public-search">
+        <span aria-hidden="true">⌕</span>
+        <input data-search="input" type="search" value="" placeholder="Search MCP notes..." aria-label="Search MCP notes" />
+        <kbd>Ctrl K</kbd>
+      </label>
+    </section>
+
+    <section class="public-index-grid">
+      <aside class="public-filter-rail" aria-label="MCP note filters">
+        <section>
+          <p class="rail-title">Categories</p>
+          <a class="filter-row active" href="/mcp/" data-filter="type" data-filter-value="all">
+            <span>All MCP notes</span>
+            <strong>{sortedTools.length}</strong>
+          </a>
+          {
+            Object.entries(categoryCounts).map(([category, count]) => (
+              <a class="filter-row" href="/mcp/" data-filter="type" data-filter-value={category}>
+                <span>{category}</span>
+                <strong>{count}</strong>
+              </a>
+            ))
+          }
+        </section>
+
+        <section class="public-rail-note">
+          <p class="rail-title">What these notes cover</p>
+          <p>Each entry documents the interface shape, capabilities, related methods, and when the tool is useful in an AI workflow.</p>
+        </section>
+      </aside>
+
+      <section class="public-results">
+        <header class="public-results-head">
+          <div>
+            <h2>Interface note index</h2>
+            <p><span data-result-count>{sortedTools.length}</span> MCP notes visible</p>
+          </div>
+          <a class="text-link" href="/skills/">Explore related skills -&gt;</a>
+        </header>
+
+        <div class="public-card-list mcp-public-list">
+          {
+            sortedTools.map((tool) => (
+              <a
+                class="public-note-card public-mcp-card"
+                href={`/mcp/${tool.id}/`}
+                data-item-id={tool.id}
+                data-type={tool.data.category}
+                data-status={publicStatus[tool.data.status] ?? tool.data.status}
+                data-search-text={`${tool.data.title} ${tool.data.category} ${tool.data.status} ${publicStatus[tool.data.status] ?? ""} ${tool.data.summary} ${tool.data.useCases.join(" ")} ${tool.data.capabilities.join(" ")}`}
+              >
+                <div class="public-mcp-card-head">
+                  <span class={`tool-logo tool-logo-small logo-${tool.id}`} aria-hidden="true">{toolMarks[tool.id] ?? tool.data.title.slice(0, 2)}</span>
+                  <div>
+                    <span class="pill">{tool.data.category}</span>
+                    <h3>{tool.data.title}</h3>
+                  </div>
+                  <span class={`status-text status-${tool.data.status.toLowerCase()}`}>{publicStatus[tool.data.status] ?? tool.data.status}</span>
+                </div>
+                <p>{tool.data.summary}</p>
+                <div class="public-card-meta">
+                  <span>{tool.data.useCases.slice(0, 2).join(" · ")}</span>
+                  <span>{tool.data.invocation ? "Includes JSON-RPC example" : "Interface note"}</span>
+                </div>
+                <ul class="check-list public-capability-list">
+                  {tool.data.capabilities.slice(0, 3).map((capability) => <li>{capability}</li>)}
+                </ul>
+                <span class="public-card-cta">Read interface note -&gt;</span>
+              </a>
+            ))
+          }
+        </div>
+
+        <p class="workbench-empty" data-empty-state hidden>No matching MCP notes.</p>
+      </section>
+    </section>
+  </main>
+</BaseLayout>
