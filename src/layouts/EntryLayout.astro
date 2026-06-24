@@ -38,10 +38,15 @@ const {
   relations = [],
   links = []
 } = Astro.props;
+
+const entryKindClass = kind
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/(^-|-$)/g, "");
 ---
 
 <BaseLayout title={`${pageTitle} | Soren AI Pages`} description={summary}>
-  <main class="entry-page">
+  <main class={`entry-page entry-kind-${entryKindClass}`}>
     <a class="back-link" href={backHref}>&lt;- {backLabel}</a>
 
     <header class="entry-header">
