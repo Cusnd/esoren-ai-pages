@@ -130,8 +130,10 @@ function initAdmin(root: HTMLElement) {
 
       apiState.textContent = "Ready";
     } catch (error) {
-      list.replaceChildren(emptyState(messageFrom(error)));
-      apiState.textContent = messageFrom(error);
+      const message = messageFrom(error);
+      startNewDraft(collection);
+      list.replaceChildren(emptyState("No content loaded."));
+      apiState.textContent = message;
     } finally {
       setBusy(false, apiState.textContent || "Ready");
     }
@@ -443,6 +445,8 @@ function errorText(data: unknown, status: number): string {
     if (typeof data.error === "string") return data.error;
     if (Array.isArray(data.errors)) return data.errors.filter((item) => typeof item === "string").join(" ");
   }
+  if (status === 401 || status === 403) return "Access sign-in required.";
+  if (status === 404) return "Admin API unavailable.";
   return `Request failed with status ${status}.`;
 }
 

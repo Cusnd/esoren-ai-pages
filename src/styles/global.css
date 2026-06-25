@@ -3070,7 +3070,7 @@ code {
 .admin-main {
   display: grid;
   min-width: 0;
-  grid-template-rows: 82px minmax(0, 1fr);
+  grid-template-rows: 76px minmax(0, 1fr);
 }
 
 .admin-topbar {
@@ -3127,8 +3127,9 @@ code {
 
 .admin-grid {
   display: grid;
-  min-height: 0;
-  grid-template-columns: minmax(260px, 320px) minmax(420px, 1fr) minmax(320px, 420px);
+  min-height: calc(100vh - 76px);
+  grid-template-columns: minmax(260px, 300px) minmax(560px, 880px) minmax(360px, 1fr);
+  align-items: stretch;
 }
 
 .admin-list-panel {
@@ -3158,7 +3159,7 @@ code {
 
 .admin-content-list {
   display: grid;
-  max-height: calc(100vh - 144px);
+  max-height: calc(100vh - 138px);
   overflow: auto;
 }
 
@@ -3211,9 +3212,8 @@ code {
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 14px;
-  max-height: calc(100vh - 82px);
-  overflow: auto;
+  gap: 12px;
+  overflow: visible;
   padding: 20px;
 }
 
@@ -3257,7 +3257,7 @@ code {
 }
 
 .admin-editor textarea {
-  min-height: 168px;
+  min-height: 138px;
   resize: vertical;
   padding: 12px;
 }
@@ -3270,25 +3270,30 @@ code {
 }
 
 .admin-json-field textarea {
-  min-height: 218px;
+  min-height: 176px;
+  max-height: 260px;
 }
 
 .admin-body-field textarea {
-  min-height: 380px;
+  min-height: 320px;
 }
 
 .admin-preview-panel {
   display: grid;
   min-width: 0;
-  max-height: calc(100vh - 82px);
+  position: sticky;
+  top: 76px;
+  min-height: calc(100vh - 76px);
+  max-height: calc(100vh - 76px);
   align-content: start;
   overflow: auto;
   border-left: 1px solid var(--line);
+  background: var(--bg);
 }
 
 .admin-preview-panel > section {
   border-bottom: 1px solid var(--line);
-  padding: 20px;
+  padding: 18px 22px;
 }
 
 .admin-panel-head {
@@ -3418,6 +3423,7 @@ code {
 
   .admin-preview-panel {
     grid-column: 1 / -1;
+    position: static;
     max-height: none;
     border-top: 1px solid var(--line);
     border-left: 0;
@@ -3475,6 +3481,7 @@ code {
 
   .admin-shell,
   .admin-grid {
+    min-height: 0;
     grid-template-columns: 1fr;
   }
 
@@ -3512,6 +3519,8 @@ code {
   .admin-editor,
   .admin-preview-panel {
     max-height: none;
+    min-height: 0;
+    overflow: visible;
   }
 
   .nav-links {
