@@ -7,10 +7,17 @@
   "vars": {
     "GITHUB_REPO": "Cusnd/esoren-ai-pages",
     "GITHUB_BRANCH": "main"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "ADMIN_DB",
+      "database_name": "esoren-ai-pages-admin",
+      "database_id": "97259833-d493-4ca4-abc5-074567ae67e5",
+      "migrations_dir": "./migrations"
+    }
+  ]
 
   // Production setup required in Cloudflare before the admin API can run:
-  // - Bind a D1 database as ADMIN_DB.
   // - Add GITHUB_TOKEN, CF_ACCESS_TEAM_DOMAIN, CF_ACCESS_AUD, and ADMIN_EMAIL
   //   as environment variables/secrets in the Pages project.
   // - Optionally add DEPLOY_HOOK_URL if Git commits do not trigger Pages builds.
