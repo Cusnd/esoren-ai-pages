@@ -2987,6 +2987,7 @@ code {
 
 .admin-shell {
   display: grid;
+  width: 100vw;
   min-height: 100vh;
   grid-template-columns: 224px minmax(0, 1fr);
   background: var(--bg);
@@ -3069,6 +3070,7 @@ code {
 
 .admin-main {
   display: grid;
+  width: 100%;
   min-width: 0;
   grid-template-rows: 76px minmax(0, 1fr);
 }
@@ -3159,6 +3161,7 @@ code {
 
 .admin-content-list {
   display: grid;
+  align-content: start;
   max-height: calc(100vh - 138px);
   overflow: auto;
 }
@@ -3372,6 +3375,34 @@ code {
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.5;
+}
+
+.admin-empty {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.admin-empty strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 760;
+}
+
+.admin-empty span {
+  color: var(--muted);
+}
+
+.admin-content-list > .admin-empty {
+  min-height: 156px;
+  margin: 14px;
+  place-items: center;
+  align-content: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 18px;
+  text-align: center;
 }
 
 .site-footer {

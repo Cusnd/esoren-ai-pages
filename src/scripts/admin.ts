@@ -132,7 +132,7 @@ function initAdmin(root: HTMLElement) {
     } catch (error) {
       const message = messageFrom(error);
       startNewDraft(collection);
-      list.replaceChildren(emptyState("No content loaded."));
+      list.replaceChildren(emptyState("No saved content.", "Saved drafts appear here."));
       apiState.textContent = message;
     } finally {
       setBusy(false, apiState.textContent || "Ready");
@@ -148,7 +148,7 @@ function initAdmin(root: HTMLElement) {
     resultCount.textContent = `${visible.length} ${visible.length === 1 ? "item" : "items"}`;
 
     if (visible.length === 0) {
-      list.replaceChildren(emptyState("No matching content."));
+      list.replaceChildren(emptyState("No matching content.", "Search returned no saved entries."));
       return;
     }
 
@@ -484,10 +484,17 @@ function updateCounts(nodes: Map<string, HTMLElement>, collection: AdminCollecti
   if (node) node.textContent = String(count);
 }
 
-function emptyState(message: string): HTMLElement {
-  const node = document.createElement("p");
+function emptyState(message: string, detail?: string): HTMLElement {
+  const node = document.createElement("div");
   node.className = "admin-empty";
-  node.textContent = message;
+  const title = document.createElement("strong");
+  title.textContent = message;
+  node.append(title);
+  if (detail) {
+    const hint = document.createElement("span");
+    hint.textContent = detail;
+    node.append(hint);
+  }
   return node;
 }
 
