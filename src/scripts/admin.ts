@@ -147,6 +147,11 @@ function initAdmin(root: HTMLElement) {
 
     resultCount.textContent = `${visible.length} ${visible.length === 1 ? "item" : "items"}`;
 
+    if (state.items.length === 0) {
+      list.replaceChildren(emptyState("No saved content.", "Saved drafts appear here."));
+      return;
+    }
+
     if (visible.length === 0) {
       list.replaceChildren(emptyState("No matching content.", "Search returned no saved entries."));
       return;
