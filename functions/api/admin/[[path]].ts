@@ -199,14 +199,14 @@ async function handlePublishJobRoute(request: Request, env: Env, segments: strin
 }
 
 async function authenticate(request: Request, env: Env): Promise<AuthedUser> {
+  const token = request.headers.get("cf-access-jwt-assertion");
+  if (!token) throw new HttpError("Missing Cloudflare Access JWT.", 401);
+
   const required = ["CF_ACCESS_TEAM_DOMAIN", "CF_ACCESS_AUD", "ADMIN_EMAIL"] as const;
   const missing = required.filter((key) => !env[key]);
   if (missing.length > 0) {
     throw new HttpError(`Missing admin auth configuration: ${missing.join(", ")}.`, 500);
   }
-
-  const token = request.headers.get("cf-access-jwt-assertion");
-  if (!token) throw new HttpError("Missing Cloudflare Access JWT.", 401);
 
   const teamDomain = normalizeTeamDomain(env.CF_ACCESS_TEAM_DOMAIN);
   const jwks = createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`));
