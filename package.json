@@ -6,11 +6,19 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "node --import tsx --test tests/admin-content.test.ts"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@cloudflare/workers-types": "^4.20260625.1",
+    "@types/node": "^26.0.1",
     "astro": "^5.15.4",
-    "typescript": "^5.9.3"
+    "tsx": "^4.22.4",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.104.0"
+  },
+  "dependencies": {
+    "jose": "^6.2.3"
   }
 }

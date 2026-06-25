@@ -1,0 +1,134 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Admin | Soren AI Pages" description="Private content admin for Soren AI Pages." hideChrome>
+  <main class="admin-shell" data-admin-app>
+    <aside class="admin-sidebar">
+      <a class="app-brand compact-brand admin-brand" href="/" aria-label="Soren AI Pages home">
+        <span class="brand-grid" aria-hidden="true"></span>
+        <span>Soren Admin</span>
+      </a>
+
+      <nav class="admin-collection-nav" aria-label="Admin collections">
+        <button class="active" type="button" data-admin-collection="articles">
+          <span>Articles</span>
+          <small data-admin-count="articles">0</small>
+        </button>
+        <button type="button" data-admin-collection="papers">
+          <span>Papers</span>
+          <small data-admin-count="papers">0</small>
+        </button>
+        <button type="button" data-admin-collection="skills">
+          <span>Skills</span>
+          <small data-admin-count="skills">0</small>
+        </button>
+        <button type="button" data-admin-collection="mcp">
+          <span>MCP</span>
+          <small data-admin-count="mcp">0</small>
+        </button>
+      </nav>
+
+      <section class="admin-rail-status" aria-label="Admin session">
+        <p class="rail-title">Session</p>
+        <p data-admin-identity>Checking Access</p>
+        <p data-admin-api-state>API idle</p>
+      </section>
+    </aside>
+
+    <section class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <p>Content Admin</p>
+          <h1>Draft, revise, publish</h1>
+        </div>
+        <div class="admin-actions">
+          <button type="button" data-admin-new>New</button>
+          <button type="button" data-admin-save>Save</button>
+          <button type="button" data-admin-publish disabled>Publish</button>
+        </div>
+      </header>
+
+      <section class="admin-grid">
+        <section class="admin-list-panel" aria-label="Content list">
+          <div class="admin-list-toolbar">
+            <label class="app-search admin-search">
+              <span aria-hidden="true">/</span>
+              <input type="search" placeholder="Search content" data-admin-search />
+            </label>
+            <span data-admin-result-count>0 items</span>
+          </div>
+          <div class="admin-content-list" data-admin-list></div>
+        </section>
+
+        <form class="admin-editor" data-admin-form>
+          <div class="admin-field-row">
+            <label>
+              <span>Collection</span>
+              <select data-admin-field="collection">
+                <option value="articles">Articles</option>
+                <option value="papers">Papers</option>
+                <option value="skills">Skills</option>
+                <option value="mcp">MCP</option>
+              </select>
+            </label>
+            <label>
+              <span>Status</span>
+              <select data-admin-field="status"></select>
+            </label>
+          </div>
+
+          <label>
+            <span>Title</span>
+            <input type="text" data-admin-field="title" />
+          </label>
+
+          <label>
+            <span>Slug</span>
+            <input type="text" data-admin-field="slug" />
+          </label>
+
+          <label class="admin-json-field">
+            <span>Frontmatter JSON</span>
+            <textarea spellcheck="false" data-admin-field="frontmatter"></textarea>
+          </label>
+
+          <label class="admin-body-field">
+            <span>Body Markdown</span>
+            <textarea spellcheck="true" data-admin-field="body"></textarea>
+          </label>
+        </form>
+
+        <aside class="admin-preview-panel" aria-label="Preview and history">
+          <section>
+            <div class="admin-panel-head">
+              <h2>Preview</h2>
+              <span data-admin-version>v0</span>
+            </div>
+            <article class="admin-preview" data-admin-preview></article>
+          </section>
+
+          <section>
+            <div class="admin-panel-head">
+              <h2>History</h2>
+              <span data-admin-published>Not published</span>
+            </div>
+            <div class="admin-revisions" data-admin-revisions></div>
+          </section>
+
+          <section>
+            <div class="admin-panel-head">
+              <h2>Publish</h2>
+              <span data-admin-job-state>Idle</span>
+            </div>
+            <pre class="admin-job-log" data-admin-job-log>No publish job selected.</pre>
+          </section>
+        </aside>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    import "@/scripts/admin";
+  </script>
+</BaseLayout>

@@ -7,6 +7,9 @@
 - Use Markdown-backed Astro content collections for Papers, Articles, Skills, and MCP interfaces.
 - Preserve static Cloudflare Pages deployment with `npm run build` and `dist`.
 - Keep MCP entries as public documentation of tool interfaces, not live website tool calls.
+- Add a private, single-user admin surface for drafting and publishing content without converting the public site to SSR.
+- Use Cloudflare Pages Functions and D1 only for admin CRUD, revision history, and GitHub-backed publishing.
+- Keep public content published as Markdown under `src/content/` so Cloudflare Pages can continue static builds.
 
 ## Todo
 

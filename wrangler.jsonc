@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "esoren-ai-pages",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-06-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "GITHUB_REPO": "Cusnd/esoren-ai-pages",
+    "GITHUB_BRANCH": "main"
+  }
+
+  // Production setup required in Cloudflare before the admin API can run:
+  // - Bind a D1 database as ADMIN_DB.
+  // - Add GITHUB_TOKEN, CF_ACCESS_TEAM_DOMAIN, CF_ACCESS_AUD, and ADMIN_EMAIL
+  //   as environment variables/secrets in the Pages project.
+  // - Optionally add DEPLOY_HOOK_URL if Git commits do not trigger Pages builds.
+}
