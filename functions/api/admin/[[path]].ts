@@ -139,7 +139,13 @@ async function handleContentRoute(
 ): Promise<Response> {
   if (segments.length === 0 && request.method === "GET") {
     const collection = url.searchParams.get("collection");
-    return jsonResponse({ items: await listContent(env.ADMIN_DB, collection) });
+    const items = await listContent(env.ADMIN_DB, collection);
+    if (url.searchParams.get("includeFirst") === "1" && items[0]) {
+      const item = await getContent(env.ADMIN_DB, items[0].id);
+      const revisions = item ? await listRevisions(env.ADMIN_DB, item.id) : [];
+      if (item) return jsonResponse({ items, selected: { item, revisions } });
+    }
+    return jsonResponse({ items });
   }
 
   if (segments.length === 0 && request.method === "POST") {

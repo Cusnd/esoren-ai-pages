@@ -43,11 +43,35 @@ type PublishJob = {
   finished_at: string | null;
 };
 
+type DetailCache = {
+  item: ContentItem;
+  revisions: RevisionItem[];
+};
+
+type ContentListResponse = {
+  items: ContentListItem[];
+  selected?: DetailCache;
+};
+
+type EditorSnapshot = {
+  collection: AdminCollection;
+  currentItem: ContentItem | null;
+  revisions: RevisionItem[];
+  title: string;
+  slug: string;
+  status: string;
+  frontmatterText: string;
+  body: string;
+};
+
 type AdminState = {
   collection: AdminCollection;
   currentItem: ContentItem | null;
-  items: ContentListItem[];
+  itemsByCollection: Record<AdminCollection, ContentListItem[]>;
+  editorSnapshotsByCollection: Partial<Record<AdminCollection, EditorSnapshot>>;
+  detailsById: Map<string, DetailCache>;
   revisions: RevisionItem[];
+  activeRequestId: number;
 };
 
 const app = document.querySelector<HTMLElement>("[data-admin-app]");
@@ -56,12 +80,24 @@ if (app) {
   initAdmin(app);
 }
 
+function emptyItemsByCollection(): Record<AdminCollection, ContentListItem[]> {
+  return {
+    articles: [],
+    papers: [],
+    skills: [],
+    mcp: []
+  };
+}
+
 function initAdmin(root: HTMLElement) {
   const state: AdminState = {
     collection: "articles",
     currentItem: null,
-    items: [],
-    revisions: []
+    itemsByCollection: emptyItemsByCollection(),
+    editorSnapshotsByCollection: {},
+    detailsById: new Map(),
+    revisions: [],
+    activeRequestId: 0
   };
 
   const collectionButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-admin-collection]"));
@@ -109,45 +145,79 @@ function initAdmin(root: HTMLElement) {
     }
   };
 
-  const loadCollection = async (collection = state.collection) => {
-    setBusy(true, "Loading");
+  const nextRequestId = () => {
+    state.activeRequestId += 1;
+    return state.activeRequestId;
+  };
+
+  const itemsFor = (collection = state.collection) => state.itemsByCollection[collection];
+
+  const switchCollection = (collection: AdminCollection, persistBefore = true) => {
+    if (persistBefore) persistCurrentEditorSnapshot();
+    state.collection = collection;
+    collectionField.value = collection;
+    syncCollectionButtons(collectionButtons, collection);
+    syncStatusOptions(statusField, collection);
+    renderList();
+
+    const snapshot = state.editorSnapshotsByCollection[collection];
+    if (snapshot) {
+      restoreEditorSnapshot(snapshot);
+    } else {
+      startNewDraft(collection, "Refreshing");
+    }
+
+    void refreshCollection(collection);
+  };
+
+  const refreshCollection = async (collection = state.collection) => {
+    const requestId = nextRequestId();
+    if (state.collection === collection) apiState.textContent = "Refreshing";
     try {
-      state.collection = collection;
-      collectionField.value = collection;
-      syncCollectionButtons(collectionButtons, collection);
-      syncStatusOptions(statusField, collection);
-
-      const data = await requestJson<{ items: ContentListItem[] }>(`/api/admin/content?collection=${collection}`);
-      state.items = data.items;
+      const data = await requestJson<ContentListResponse>(
+        `/api/admin/content?collection=${collection}&includeFirst=1`
+      );
+      state.itemsByCollection[collection] = data.items;
       updateCounts(countNodes, collection, data.items.length);
-      renderList();
-
-      if (data.items[0]) {
-        await selectItem(data.items[0].id);
-      } else {
-        startNewDraft(collection);
+      if (data.selected) {
+        state.detailsById.set(data.selected.item.id, data.selected);
       }
 
+      if (state.activeRequestId !== requestId || state.collection !== collection) return;
+
+      renderList();
+      if (!state.editorSnapshotsByCollection[collection] && data.selected) {
+        applyDetail(data.selected);
+        persistCurrentEditorSnapshot();
+      } else if (!state.editorSnapshotsByCollection[collection] && data.items.length === 0) {
+        startNewDraft(collection, "Ready");
+      }
       apiState.textContent = "Ready";
     } catch (error) {
+      if (state.activeRequestId !== requestId || state.collection !== collection) return;
       const message = messageFrom(error);
-      startNewDraft(collection);
-      list.replaceChildren(emptyState("No saved content.", "Saved drafts appear here."));
+      if (!state.editorSnapshotsByCollection[collection]) startNewDraft(collection, message);
+      if (itemsFor(collection).length === 0) {
+        list.replaceChildren(emptyState("No saved content.", "Saved drafts appear here."));
+      } else {
+        renderList();
+      }
       apiState.textContent = message;
     } finally {
-      setBusy(false, apiState.textContent || "Ready");
+      publishButton.disabled = !state.currentItem;
     }
   };
 
   const renderList = () => {
     const query = search.value.trim().toLowerCase();
-    const visible = state.items.filter((item) =>
+    const items = itemsFor();
+    const visible = items.filter((item) =>
       `${item.title} ${item.slug} ${item.status}`.toLowerCase().includes(query)
     );
 
     resultCount.textContent = `${visible.length} ${visible.length === 1 ? "item" : "items"}`;
 
-    if (state.items.length === 0) {
+    if (items.length === 0) {
       list.replaceChildren(emptyState("No saved content.", "Saved drafts appear here."));
       return;
     }
@@ -190,26 +260,33 @@ function initAdmin(root: HTMLElement) {
   };
 
   const selectItem = async (id: string) => {
+    delete state.editorSnapshotsByCollection[state.collection];
+    const cached = state.detailsById.get(id);
+    if (cached) {
+      applyDetail(cached);
+      persistCurrentEditorSnapshot();
+      apiState.textContent = "Ready";
+      return;
+    }
+
+    const requestId = nextRequestId();
     setBusy(true, "Loading item");
     try {
-      const data = await requestJson<{ item: ContentItem; revisions: RevisionItem[] }>(`/api/admin/content/${id}`);
-      state.currentItem = data.item;
-      state.revisions = data.revisions;
-      state.collection = data.item.collection;
-      fillForm(data.item);
-      renderList();
-      renderPreview();
-      renderRevisions();
-      renderPublishState(null);
+      const data = await requestJson<DetailCache>(`/api/admin/content/${id}`);
+      if (state.activeRequestId !== requestId) return;
+      state.detailsById.set(data.item.id, data);
+      applyDetail(data);
+      persistCurrentEditorSnapshot();
       apiState.textContent = "Ready";
     } catch (error) {
+      if (state.activeRequestId !== requestId) return;
       apiState.textContent = messageFrom(error);
     } finally {
       setBusy(false, apiState.textContent || "Ready");
     }
   };
 
-  const startNewDraft = (collection = state.collection) => {
+  const startNewDraft = (collection = state.collection, label = "Drafting") => {
     state.collection = collection;
     state.currentItem = null;
     state.revisions = [];
@@ -231,7 +308,7 @@ function initAdmin(root: HTMLElement) {
     renderRevisions();
     renderPublishState(null);
     publishButton.disabled = true;
-    apiState.textContent = "Drafting";
+    apiState.textContent = label;
   };
 
   const saveCurrent = async () => {
@@ -248,7 +325,14 @@ function initAdmin(root: HTMLElement) {
 
       state.currentItem = data.item;
       state.collection = data.item.collection;
-      await loadCollection(data.item.collection);
+      delete state.editorSnapshotsByCollection[data.item.collection];
+      state.detailsById.delete(data.item.id);
+      syncCollectionButtons(collectionButtons, data.item.collection);
+      fillForm(data.item);
+      renderPreview();
+      renderRevisions();
+      renderPublishState(null);
+      await refreshCollection(data.item.collection);
       await selectItem(data.item.id);
       apiState.textContent = "Saved";
     } catch (error) {
@@ -267,6 +351,8 @@ function initAdmin(root: HTMLElement) {
         method: "POST"
       });
       renderPublishState(data.job);
+      state.detailsById.delete(state.currentItem.id);
+      delete state.editorSnapshotsByCollection[state.currentItem.collection];
       await selectItem(state.currentItem.id);
       apiState.textContent = data.job.status === "succeeded" ? "Published" : data.job.status;
     } catch (error) {
@@ -327,6 +413,62 @@ function initAdmin(root: HTMLElement) {
     publishedNode.textContent = state.currentItem?.published_at
       ? formatDateTime(state.currentItem.published_at)
       : "Not published";
+  };
+
+  const captureEditorSnapshot = (): EditorSnapshot | null => {
+    if (!isAdminCollection(collectionField.value)) return null;
+    return {
+      collection: collectionField.value,
+      currentItem: state.currentItem,
+      revisions: [...state.revisions],
+      title: titleField.value,
+      slug: slugField.value,
+      status: statusField.value,
+      frontmatterText: frontmatterField.value,
+      body: bodyField.value
+    };
+  };
+
+  const persistCurrentEditorSnapshot = () => {
+    const snapshot = captureEditorSnapshot();
+    if (snapshot) state.editorSnapshotsByCollection[snapshot.collection] = snapshot;
+  };
+
+  const restoreEditorSnapshot = (snapshot: EditorSnapshot) => {
+    state.collection = snapshot.collection;
+    state.currentItem = snapshot.currentItem;
+    state.revisions = [...snapshot.revisions];
+    collectionField.value = snapshot.collection;
+    syncCollectionButtons(collectionButtons, snapshot.collection);
+    syncStatusOptions(statusField, snapshot.collection);
+    titleField.value = snapshot.title;
+    slugField.value = snapshot.slug;
+    statusField.value = snapshot.status;
+    frontmatterField.value = snapshot.frontmatterText;
+    bodyField.value = snapshot.body;
+    versionNode.textContent = snapshot.currentItem ? `v${snapshot.currentItem.version}` : "v0";
+    publishedNode.textContent = snapshot.currentItem?.published_at
+      ? formatDateTime(snapshot.currentItem.published_at)
+      : "Not published";
+    publishButton.disabled = !snapshot.currentItem;
+    renderList();
+    renderPreview();
+    renderRevisions();
+    renderPublishState(null);
+  };
+
+  const applyDetail = ({ item, revisions }: DetailCache) => {
+    state.currentItem = item;
+    state.revisions = revisions;
+    state.collection = item.collection;
+    collectionField.value = item.collection;
+    syncCollectionButtons(collectionButtons, item.collection);
+    syncStatusOptions(statusField, item.collection);
+    fillForm(item);
+    renderList();
+    renderPreview();
+    renderRevisions();
+    renderPublishState(null);
   };
 
   const renderPreview = () => {
@@ -398,7 +540,7 @@ function initAdmin(root: HTMLElement) {
     button.addEventListener("click", () => {
       const collection = button.dataset.adminCollection;
       if (isAdminCollection(collection)) {
-        void loadCollection(collection);
+        switchCollection(collection);
       }
     });
   });
@@ -406,19 +548,36 @@ function initAdmin(root: HTMLElement) {
   collectionField.addEventListener("change", () => {
     if (isAdminCollection(collectionField.value)) {
       startNewDraft(collectionField.value);
+      persistCurrentEditorSnapshot();
     }
   });
 
   titleField.addEventListener("input", () => {
     if (!state.currentItem) slugField.value = slugifyTitle(titleField.value);
     renderPreview();
+    persistCurrentEditorSnapshot();
   });
-  slugField.addEventListener("input", renderPreview);
-  statusField.addEventListener("change", renderPreview);
-  frontmatterField.addEventListener("input", renderPreview);
-  bodyField.addEventListener("input", renderPreview);
+  slugField.addEventListener("input", () => {
+    renderPreview();
+    persistCurrentEditorSnapshot();
+  });
+  statusField.addEventListener("change", () => {
+    renderPreview();
+    persistCurrentEditorSnapshot();
+  });
+  frontmatterField.addEventListener("input", () => {
+    renderPreview();
+    persistCurrentEditorSnapshot();
+  });
+  bodyField.addEventListener("input", () => {
+    renderPreview();
+    persistCurrentEditorSnapshot();
+  });
   search.addEventListener("input", renderList);
-  newButton.addEventListener("click", () => startNewDraft(state.collection));
+  newButton.addEventListener("click", () => {
+    startNewDraft(state.collection);
+    persistCurrentEditorSnapshot();
+  });
   saveButton.addEventListener("click", () => {
     void saveCurrent();
   });
@@ -427,7 +586,7 @@ function initAdmin(root: HTMLElement) {
   });
 
   void loadIdentity();
-  void loadCollection("articles");
+  switchCollection("articles", false);
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
